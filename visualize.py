@@ -7,14 +7,15 @@ from PIL import Image
 
 
 def visualize_sample(folder_path):
-    folders = os.listdir(folder_path)
+    folder = Path(folder_path)
+    folders = [f for f in folder.iterdir() if f.is_dir()]
     list_imgs = []
     row = 2
     col = (len(folders)+row-1) // row
     
     for folder in folders:
-        img = os.listdir(osp.join(folder_path, folder))[0]
-        list_imgs.append((folder, osp.join(folder_path, folder, img)))
+        img = list(folder.glob('*.jpg'))[0]
+        list_imgs.append((folder.name, img))
 
     fig, axs = plt.subplots(row, col, figsize=(16, 8))
 
