@@ -8,6 +8,7 @@ import numpy as np
 from torchvision import transforms
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
+import timm
 
 from visualize import visualize_img
 from weather_dataset import WeatherDataset
@@ -46,6 +47,8 @@ def get_device():
         print(f"Allocated: {torch.cuda.memory_allocated() / 1024**3:.2f} GB")
         print(f"Cached: {torch.cuda.memory_reserved() / 1024**3:.2f} GB")
     
+    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
 def prepare_dataset(folder_path):
     folders = [f for f in Path(folder_path).iterdir() if f.is_dir()]
     img_paths = []
@@ -74,7 +77,7 @@ def dataset_split(img_paths, labels):
 
     return X_train, X_val, X_test, y_train, y_val, y_test
 
-def train(path):
+def train(path, device):
     train_batch_size = 256
     test_batch_size = 128
 
@@ -95,10 +98,22 @@ def train(path):
     val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
+    student_model = timm.create_model(
+        "resnet18",
+        pretrained=True,
+        num_classes=nb_class
+    ).to(device)
+    teacher_model = timm.create_model(
+        "densenet169",
+        pretrained=True,
+        num_classes=nb_class
+    ).to(device)
+
+    
 
     
 
 if __name__=='__main__':
     set_seed(42)
-    # get_device()
-    train("dataset/weather-dataset/dataset")
+    device = get_device()
+    train("dataset/weather-dataset/dataset", device)
