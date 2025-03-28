@@ -1,10 +1,25 @@
 import torch
 import torch.nn as nn
+import numpy as np
 from torch.utils.data import Dataset
 from PIL import Image
 
+class WeatherTransform():
+    def __init__(self, size=(224, 224)):
+        self.size = size
+    
+    def __call__(self, img):
+        img = img.resize(self.size)
+        img = np.array(img)
+        img = torch.from_numpy(img)
+        img = img.permute(2, 0, 1).float()/255.0
+        mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
+        std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
+        img = (img - mean) / std
+        return img
+    
 class WeatherDataset(Dataset):
-    def __init__(self, img_paths, labels, transform=None):
+    def __init__(self, img_paths, labels, transform=WeatherTransform()):
         self.img_paths = img_paths
         self.labels = labels
         self.transform = transform
@@ -22,11 +37,3 @@ class WeatherDataset(Dataset):
         
         return img, label
 
-class WeatherTransform():
-    def __init__(self, size=(224, 224)):
-        self.size = size
-    
-    def __call__(self, img):
-        img = img.resize(self.size)
-        img = torch.tensor(img).permute(2, 0, 1).float()
-        return img / 255.0

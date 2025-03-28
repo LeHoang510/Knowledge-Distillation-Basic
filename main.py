@@ -4,10 +4,18 @@ from pathlib import Path
 import random
 
 import torch
+import numpy as np
+from torchvision import transforms
 from sklearn.model_selection import train_test_split
+from torch.utils.data import DataLoader
+
+from visualize import visualize_img
+from weather_dataset import WeatherDataset
+
 
 def set_seed(seed):
     random.seed(seed)
+    np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
@@ -40,7 +48,6 @@ def get_device():
     
 def prepare_dataset(folder_path):
     folders = [f for f in Path(folder_path).iterdir() if f.is_dir()]
-    print(folders)
     img_paths = []
     labels = []
     for folder in folders:
@@ -48,14 +55,15 @@ def prepare_dataset(folder_path):
             img_paths.append(img_path)
             labels.append(folder.name)
     
-    return img_paths, labels
+    nb_class = len(folders)
+    
+    return img_paths, labels, nb_class
 
 def dataset_split(img_paths, labels):
     val_size = 0.2
     test_size = 0.125
     is_shuffle = True
-    X_train, X_val, y_train, y_val = train_test_split(img_paths, 
-                                                      labels, 
+    X_train, X_val, y_train, y_val = train_test_split(img_paths, labels, 
                                                       test_size=val_size, 
                                                       stratify=labels, 
                                                       shuffle=is_shuffle)
@@ -67,11 +75,30 @@ def dataset_split(img_paths, labels):
     return X_train, X_val, X_test, y_train, y_val, y_test
 
 def train(path):
-    img_paths, labels = prepare_dataset("dataset/weather-dataset/dataset")
+    train_batch_size = 256
+    test_batch_size = 128
+
+    img_paths, labels, nb_class = prepare_dataset("dataset/weather-dataset/dataset")
     X_train, X_val, X_test, y_train, y_val, y_test = dataset_split(img_paths, labels)
 
+    transform = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+
+    train_dataset = WeatherDataset(X_train, y_train, transform=transform)
+    val_dataset = WeatherDataset(X_val, y_val, transform=transform)
+    test_dataset = WeatherDataset(X_test, y_test, transform=transform)
+
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+
+
+    
 
 if __name__=='__main__':
-    # set_seed(42)
+    set_seed(42)
     # get_device()
     train("dataset/weather-dataset/dataset")

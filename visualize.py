@@ -2,6 +2,7 @@ import os
 import os.path as osp
 from pathlib import Path
 
+import torch
 import matplotlib.pyplot as plt
 from PIL import Image
 
@@ -31,6 +32,12 @@ def visualize_sample(folder_path):
         axs[x, y].axis('off')
 
     plt.tight_layout()
+    plt.show()
+
+def visualize_img(img: torch.Tensor):
+    img = img.permute(1, 2, 0).numpy()
+    plt.imshow(img)
+    plt.axis('off')
     plt.show()
 
 if __name__ == '__main__':
