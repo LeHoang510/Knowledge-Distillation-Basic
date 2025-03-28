@@ -66,7 +66,12 @@ def dataset_split(img_paths, labels):
 
     return X_train, X_val, X_test, y_train, y_val, y_test
 
+def train(path):
+    img_paths, labels = prepare_dataset("dataset/weather-dataset/dataset")
+    X_train, X_val, X_test, y_train, y_val, y_test = dataset_split(img_paths, labels)
+
+
 if __name__=='__main__':
     # set_seed(42)
     # get_device()
-    prepare_dataset("dataset/weather-dataset/dataset")
+    train("dataset/weather-dataset/dataset")
