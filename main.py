@@ -4,6 +4,8 @@ from pathlib import Path
 import random
 
 import torch
+import torch.nn as nn
+import torch.optim as optim
 import numpy as np
 from torchvision import transforms
 from sklearn.model_selection import train_test_split
@@ -12,7 +14,7 @@ import timm
 
 from visualize import visualize_img
 from weather_dataset import WeatherDataset
-
+from utils import Logger
 
 def set_seed(seed):
     random.seed(seed)
@@ -77,6 +79,81 @@ def dataset_split(img_paths, labels):
 
     return X_train, X_val, X_test, y_train, y_val, y_test
 
+def evaluate_model(model, data_loader, criterion, device):
+    model.eval()
+    total = 0
+    correct = 0
+    val_loss = 0.0
+    with torch.no_grad():
+        for i, (images, labels) in enumerate(data_loader):
+            images = images.to(device)
+            labels = labels.to(device)
+
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+            val_loss += loss.item()
+
+    accuracy = correct/total
+    val_loss = val_loss/len(data_loader)
+    model.train()
+    return val_loss, accuracy
+
+def fit_model(
+        model, 
+        optimizer, 
+        criterion, 
+        train_loader, 
+        val_loader, 
+        logger,
+        patience,
+        device, 
+        epochs
+    ):
+    
+    best_val_loss = float('inf')
+    patience_counter = 0
+    
+    model.train()
+    train_losses = []
+    val_losses = []
+    val_accuracies = []
+
+    for epoch in range(epochs):
+        batch_loss = 0.0
+        for i, (images, labels) in enumerate(train_loader):
+            images = images.to(device)
+            labels = labels.to(device)
+
+            optimizer.zero_grad()
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+            batch_loss += loss.item()
+        
+        val_loss, val_accuracy = evaluate_model(model, val_loader, criterion, device)
+        train_losses.append(batch_loss / len(train_loader))
+        val_losses.append(val_loss)
+        val_accuracies.append(val_accuracy)
+
+        logger.write(epoch, epochs, train_losses[-1], val_loss, val_accuracy)
+    
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            patience_counter = 0
+        else:
+            patience_counter += 1
+        
+        if patience_counter >= patience:
+            print(f"Early stopping at epoch {epoch}")
+            break
+
+    return train_losses, val_losses, val_accuracies
+
 def train(path, device):
     train_batch_size = 256
     test_batch_size = 128
@@ -109,7 +186,78 @@ def train(path, device):
         num_classes=nb_class
     ).to(device)
 
-    
+    lr = 1e-2
+    epochs = 15
+    patience = 3
+    criterion = nn.CrossEntropyLoss()
+
+    student_logger = Logger(log_dir=Path("output/logs/student"))
+    teacher_logger = Logger(log_dir=Path("output/logs/teacher"))
+
+    print("\n=== TRAIN STUDENT ===")
+    student_optimizer = optim.Adam(student_model.parameters(), lr=lr)
+    train_losses, val_losses, val_accuracies = fit_model(
+        student_model, 
+        student_optimizer, 
+        criterion, 
+        train_loader, 
+        val_loader, 
+        student_logger,
+        patience,
+        device, 
+        epochs
+    )
+    print("\n=== TRAINING COMPLETE ===")
+
+    print(f"Best Validation Loss: {min(val_losses)}")
+    print(f"Best Validation Accuracy: {max(val_accuracies)}")
+    print(f"Final Training Loss: {train_losses[-1]}")
+    print(f"Final Validation Loss: {val_losses[-1]}")
+    print(f"Final Validation Accuracy: {val_accuracies[-1]}")
+
+    print("\n=== TEST STUDENT ===")
+    test_loss, test_accuracy = evaluate_model(student_model, test_loader, criterion, device)
+    print(f"Test Loss: {test_loss}")
+    print(f"Test Accuracy: {test_accuracy}")
+
+    student_logger.close()
+    print("\n=== TESTING COMPLETE ===")
+
+    print("\n=== TRAIN TEACHER ===")
+    teacher_optimizer = optim.Adam(teacher_model.parameters(), lr=lr)
+    train_losses, val_losses, val_accuracies = fit_model(
+        teacher_model, 
+        teacher_optimizer, 
+        criterion, 
+        train_loader, 
+        val_loader, 
+        teacher_logger,
+        patience,
+        device, 
+        epochs
+    )
+    print("\n=== TRAINING COMPLETE ===")
+    print(f"Best Validation Loss: {min(val_losses)}")
+    print(f"Best Validation Accuracy: {max(val_accuracies)}")
+    print(f"Final Training Loss: {train_losses[-1]}")
+    print(f"Final Validation Loss: {val_losses[-1]}")
+    print(f"Final Validation Accuracy: {val_accuracies[-1]}")
+
+    print("\n=== TEST TEACHER ===")
+    test_loss, test_accuracy = evaluate_model(teacher_model, test_loader, criterion, device)
+    print(f"Test Loss: {test_loss}")
+    print(f"Test Accuracy: {test_accuracy}")
+
+    teacher_logger.close()
+    print("\n=== TESTING COMPLETE ===")
+
+    teacher_path = Path("output/model/teacher_model.pth")
+    student_path = Path("output/model/student_model.pth")
+    torch.save(teacher_model.state_dict(), teacher_path)
+    torch.save(student_model.state_dict(), student_path)
+
+
+
 
     
 
