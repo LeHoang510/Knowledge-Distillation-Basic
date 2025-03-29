@@ -2,6 +2,7 @@ import os
 import os.path as osp
 from pathlib import Path
 import random
+import time
 
 import torch
 import torch.nn as nn
@@ -11,6 +12,7 @@ from torchvision import transforms
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 import timm
+from tqdm import tqdm
 
 from visualize import visualize_img
 from weather_dataset import WeatherDataset
@@ -91,7 +93,7 @@ def evaluate_model(model, data_loader, criterion, device):
     correct = 0
     val_loss = 0.0
     with torch.no_grad():
-        for i, (images, labels) in enumerate(data_loader):
+        for i, (images, labels) in enumerate(tqdm(data_loader, desc="Evaluating")):
             images = images.to(device)
             labels = labels.to(device)
 
@@ -129,7 +131,7 @@ def fit_model(
 
     for epoch in range(epochs):
         batch_loss = 0.0
-        for i, (images, labels) in enumerate(train_loader):
+        for i, (images, labels) in enumerate(tqdm(train_loader, desc="Training")):
             images = images.to(device)
             labels = labels.to(device)
 
@@ -153,7 +155,7 @@ def fit_model(
             patience_counter = 0
         else:
             patience_counter += 1
-        exit(0)
+
         if patience_counter >= patience:
             print(f"Early stopping at epoch {epoch}")
             break
@@ -161,8 +163,8 @@ def fit_model(
     return train_losses, val_losses, val_accuracies
 
 def train(path, device):
-    train_batch_size = 128
-    test_batch_size = 64
+    train_batch_size = 64
+    test_batch_size = 32
 
     img_paths, labels, labels_dict, nb_class = prepare_dataset(path)
     X_train, X_val, X_test, y_train, y_val, y_test = dataset_split(img_paths, labels)
@@ -199,6 +201,11 @@ def train(path, device):
 
     student_logger = Logger(log_dir=Path("output/logs/student"))
     teacher_logger = Logger(log_dir=Path("output/logs/teacher"))
+    
+    Path("output/model").mkdir(parents=True, exist_ok=True)
+
+    teacher_path = Path("output/model/teacher_model.pth")
+    student_path = Path("output/model/student_model.pth")
 
     print("\n=== TRAIN STUDENT ===")
     student_optimizer = optim.Adam(student_model.parameters(), lr=lr)
@@ -229,6 +236,9 @@ def train(path, device):
     student_logger.close()
     print("\n=== TESTING COMPLETE ===")
 
+    torch.save(student_model.state_dict(), student_path)
+    print("\n=== STUDENT MODEL SAVED ===")
+
     print("\n=== TRAIN TEACHER ===")
     teacher_optimizer = optim.Adam(teacher_model.parameters(), lr=lr)
     train_losses, val_losses, val_accuracies = fit_model(
@@ -257,13 +267,8 @@ def train(path, device):
     teacher_logger.close()
     print("\n=== TESTING COMPLETE ===")
 
-    Path("output/model").mkdir(parents=True, exist_ok=True)
-
-    teacher_path = Path("output/model/teacher_model.pth")
-    student_path = Path("output/model/student_model.pth")
     torch.save(teacher_model.state_dict(), teacher_path)
-    torch.save(student_model.state_dict(), student_path)
-
+    print("\n=== TEACHER MODEL SAVED ===")
 
 if __name__=='__main__':
     set_seed(42)
