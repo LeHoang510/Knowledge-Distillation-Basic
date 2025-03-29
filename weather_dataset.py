@@ -29,7 +29,7 @@ class WeatherDataset(Dataset):
 
     def __getitem__(self, index):
         img_path = self.img_paths[index]
-        img = Image.open(img_path)
+        img = Image.open(img_path).convert('RGB')
         label = self.labels[index]
 
         if self.transform:

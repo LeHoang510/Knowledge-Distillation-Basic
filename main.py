@@ -55,14 +55,20 @@ def prepare_dataset(folder_path):
     folders = [f for f in Path(folder_path).iterdir() if f.is_dir()]
     img_paths = []
     labels = []
+    labels_dict = {}
+
+    for id, folder in enumerate(folders):
+        labels_dict[id] = folder.name
+
     for folder in folders:
         for img_path in folder.iterdir():
             img_paths.append(img_path)
-            labels.append(folder.name)
-    
+            folder_id = [id for id, name in labels_dict.items() if name == folder.name][0]
+            labels.append(folder_id)
+
     nb_class = len(folders)
     
-    return img_paths, labels, nb_class
+    return img_paths, labels, labels_dict, nb_class
 
 def dataset_split(img_paths, labels):
     val_size = 0.2
@@ -147,7 +153,7 @@ def fit_model(
             patience_counter = 0
         else:
             patience_counter += 1
-        
+        exit(0)
         if patience_counter >= patience:
             print(f"Early stopping at epoch {epoch}")
             break
@@ -155,10 +161,10 @@ def fit_model(
     return train_losses, val_losses, val_accuracies
 
 def train(path, device):
-    train_batch_size = 256
-    test_batch_size = 128
+    train_batch_size = 128
+    test_batch_size = 64
 
-    img_paths, labels, nb_class = prepare_dataset("dataset/weather-dataset/dataset")
+    img_paths, labels, labels_dict, nb_class = prepare_dataset(path)
     X_train, X_val, X_test, y_train, y_val, y_test = dataset_split(img_paths, labels)
 
     transform = transforms.Compose([
@@ -171,9 +177,9 @@ def train(path, device):
     val_dataset = WeatherDataset(X_val, y_val, transform=transform)
     test_dataset = WeatherDataset(X_test, y_test, transform=transform)
 
-    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=train_batch_size, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=test_batch_size, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=test_batch_size, shuffle=False)
 
     student_model = timm.create_model(
         "resnet18",
@@ -251,15 +257,13 @@ def train(path, device):
     teacher_logger.close()
     print("\n=== TESTING COMPLETE ===")
 
+    Path("output/model").mkdir(parents=True, exist_ok=True)
+
     teacher_path = Path("output/model/teacher_model.pth")
     student_path = Path("output/model/student_model.pth")
     torch.save(teacher_model.state_dict(), teacher_path)
     torch.save(student_model.state_dict(), student_path)
 
-
-
-
-    
 
 if __name__=='__main__':
     set_seed(42)
