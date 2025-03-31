@@ -45,13 +45,13 @@ def fit(
                 teacher_outputs = teacher_model(images)
             student_outputs = student_model(images)
 
-            student_loss = criterion(student_outputs, labels)
+            ce_loss = criterion(student_outputs, labels)
 
-            prob_teacher = torch.softmax(teacher_outputs, dim=-1)
-            prob_student = torch.softmax(student_outputs, dim=-1)
-            kl_loss = torch.sum(prob_teacher * (torch.log(prob_teacher)-torch.log(prob_student)))
+            soft_targets = torch.softmax(teacher_outputs/temperature, dim=-1)
+            soft_prob = torch.log_softmax(student_outputs/temperature, dim=-1)
+            soft_targets_loss  = torch.sum(soft_targets * (soft_targets.log()-soft_prob))/soft_prob.size()[0]
 
-            loss = (1-weight)*student_loss + weight*(temperature**2)*kl_loss
+            loss = (1-weight)*ce_loss + weight*(temperature**2)*soft_targets_loss 
             loss.backward()
             optimizer.step()
 
@@ -156,7 +156,7 @@ def teach(path, device):
     torch.save(student_model.state_dict(), student_path)
     print("\n=== STUDENT MODEL SAVED ===")
 
-if __name__=="main":
+if __name__=="__main__":
     device = get_device()
     set_seed(42)
     teach("dataset/weather-dataset/dataset", device)
