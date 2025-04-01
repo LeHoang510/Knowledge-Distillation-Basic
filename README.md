@@ -9,7 +9,7 @@ This project implements knowledge distillation (KD) techniques to improve model 
 - [Implementation Details](#implementation-details)
 - [How to Run the Project](#how-to-run-the-project)
 - [Experimental Results](#experimental-results)
-- [References](#references)
+- [Conclusion](#conclusion)
 
 ## Dataset Information
 The weather dataset contains 11 categories of weather conditions:
@@ -161,5 +161,28 @@ poetry install
     - Knowledge distillation provided marginal improvement over standalone training
     - The technique was not particularly effective in this configuration
 
-
 ### Experiment 2: ResNet50 vs ResNet18
+
+- Results Without Knowledge Distillation
+
+    | Metric                  | Teacher | Student |
+    |-------------------------|---------|---------|
+    | Best Validation Loss    | 0.672   | 0.599   |
+    | Best Validation Accuracy| 0.792   | 0.813   |
+    | Final Training Loss     | 0.445   | 0.250   |
+    | Final Validation Loss   | 0.796   | 0.690   |
+    | Final Validation Accuracy| 0.785  | 0.813   |
+    | Test Loss               | 0.727   | 0.716   |
+    | Test Accuracy           | 0.781   | 0.803   |
+
+    ![Training Accuracy](docs/experiment_2/basic/Accuracy.png)
+    ![Training Loss](docs/experiment_2/basic/Loss.png)
+
+- **Key Observations:**
+    - The student model (ResNet18) outperformed the teacher model (ResNet50) across all metrics
+    - The same phenomenon as in Experiment 1 was observed, where the model with fewer parameters achieved better performance
+    - This could be attributed to the teacher model's overfitting to the training data or maybe the dataset being too small for the teacher model's complexity or the parameters need to be tuned for the teacher model
+
+## Conclusion
+This project successfully implemented knowledge distillation techniques for weather classification. It shows that the method still has potential for improving model performance. 
+However, in this project, the results indicate that the student model can outperform the teacher model in certain configurations. The knowledge distillation approach doesn't always yield significant improvements, and in some cases, it may even lead to worse performance. This suggests that while knowledge distillation is a valuable technique, its effectiveness can vary based on the specific models and datasets used. Further experimentation with different architectures and hyperparameters is recommended to optimize performance.

@@ -192,14 +192,14 @@ def train(path, device):
         num_classes=nb_class
     ).to(device)
     teacher_model = timm.create_model(
-        "densenet169",
+        "resnet50",
         pretrained=True,
         num_classes=nb_class
     ).to(device)
 
     lr = 1e-2
     epochs = 15
-    patience = 3
+    patience = 4
     criterion = nn.CrossEntropyLoss()
 
     student_logger = Logger(log_dir=Path("output/logs/student"))
