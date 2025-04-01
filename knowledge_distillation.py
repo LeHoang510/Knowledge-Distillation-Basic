@@ -86,10 +86,10 @@ def teach(path, device):
         pretrained=True,
         num_classes=nb_class
     ).to(device)
-    teacher_model.load_state_dict(torch.load(Path("output/model/teacher_model.pth"), map_location=device))
+    teacher_model.load_state_dict(torch.load(Path("output/student_model.pth"), map_location=device))
 
     student_model = timm.create_model(
-        "densenet169",
+        "resnet50",
         pretrained=True,
         num_classes=nb_class
     ).to(device)

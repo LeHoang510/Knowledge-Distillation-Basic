@@ -183,6 +183,8 @@ poetry install
     - The same phenomenon as in Experiment 1 was observed, where the model with fewer parameters achieved better performance
     - This could be attributed to the teacher model's overfitting to the training data or maybe the dataset being too small for the teacher model's complexity or the parameters need to be tuned for the teacher model
 
+- Result with Knowledge Distillation is really bad though, it's even worse than the basic result of the student model (which is Resnet 50 here)
+
 ## Conclusion
 This project successfully implemented knowledge distillation techniques for weather classification. It shows that the method still has potential for improving model performance. 
 However, in this project, the results indicate that the student model can outperform the teacher model in certain configurations. The knowledge distillation approach doesn't always yield significant improvements, and in some cases, it may even lead to worse performance. This suggests that while knowledge distillation is a valuable technique, its effectiveness can vary based on the specific models and datasets used. Further experimentation with different architectures and hyperparameters is recommended to optimize performance.
