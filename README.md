@@ -157,6 +157,11 @@ poetry install
     ![KD Accuracy](docs/experiment_1/kd/Accuracy.png)
     ![KD Loss](docs/experiment_1/kd/Loss.png)
 
+    The name of the teacher is changed to student and the student is changed to teacher in the plots below to avoid confusion and make it more clear for the improvements of the student model with knowledge distillation
+    
+    ![KD Accuracy](docs/experiment_1/kd/accuracy_all.png)
+    ![KD Loss](docs/experiment_1/kd/loss_all.png)
+
 - **Key Observations:**
     - Knowledge distillation provided marginal improvement over standalone training
     - The technique was not particularly effective in this configuration
